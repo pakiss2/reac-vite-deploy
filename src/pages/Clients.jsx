@@ -107,7 +107,6 @@ export default function Clients() {
             contactNo: '',
             email: '',
             accountNo: '',
-            accountNo: '',
             type: 'Residential',
             paymentSchedule: 'Monthly'
         });
