@@ -14,6 +14,15 @@ export const AuthProvider = ({ children }) => {
             setUser(JSON.parse(storedUser));
         }
         setLoading(false);
+
+        // Listen for updates from other tabs
+        const handleStorage = (e) => {
+            if (e.key === 'waterwise_user' && e.newValue) {
+                setUser(JSON.parse(e.newValue));
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
     }, []);
 
     const login = (username, password) => {
@@ -33,8 +42,16 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('waterwise_user');
     };
 
+    const updateUser = (updates) => {
+        setUser(prev => {
+            const newUser = { ...prev, ...updates };
+            localStorage.setItem('waterwise_user', JSON.stringify(newUser));
+            return newUser;
+        });
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -2,9 +2,10 @@ import {
     LayoutDashboard,
     Users,
     FileText,
-    Settings,
+    Settings as SettingsIcon,
     LogOut,
-    Droplets
+    Droplets,
+    Cpu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -22,11 +23,16 @@ export default function DashboardLayout({ children, title }) {
     };
 
     // Determine role-based links
-    const links = user?.role === 'admin' ? [
+    const links = user?.role === 'superadmin' ? [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
         { icon: Users, label: 'Clients', path: '/admin/clients' },
         { icon: FileText, label: 'Reports', path: '/admin/reports' },
-        { icon: Settings, label: 'Settings', path: '/admin/settings' },
+        { icon: SettingsIcon, label: 'Settings', path: '/admin/settings' },
+    ] : user?.role === 'admin' ? [
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
+        { icon: Users, label: 'Clients', path: '/admin/clients' },
+        { icon: FileText, label: 'Reports', path: '/admin/reports' },
+        { icon: SettingsIcon, label: 'Settings', path: '/admin/settings' },
     ] : [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
         { icon: Users, label: 'Clients', path: '/admin/clients' },
@@ -35,12 +41,12 @@ export default function DashboardLayout({ children, title }) {
 
     return (
         <div className="flex min-h-screen bg-slate-50 font-sans">
-            <aside className="w-64 bg-[#1a2332] text-white flex flex-col fixed h-full z-10">
+            <aside className="w-64 bg-[#1a2332] text-white flex flex-col fixed h-full z-10 print:hidden">
                 <div className="p-6 flex items-center gap-3">
                     <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
                         <Droplets className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xl font-bold tracking-tight">WaterWise</span>
+                    <span className="text-xl font-bold tracking-tight">Nagcarlan water billing</span>
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2 mt-4">
@@ -61,8 +67,12 @@ export default function DashboardLayout({ children, title }) {
 
                 <div className="p-4 border-t border-slate-700">
                     <div className="flex items-center gap-3 px-4 py-2">
-                        <div className="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center text-xs text-white font-bold">
-                            {user?.name?.[0] || 'U'}
+                        <div className="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center overflow-hidden border border-slate-500/50 shadow-inner">
+                            {user?.avatar ? (
+                                <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <span className="text-xs text-white font-bold">{user?.name?.[0] || 'U'}</span>
+                            )}
                         </div>
                         <div className="flex-1 overflow-hidden">
                             <p className="text-sm font-medium truncate text-white">{user?.name}</p>
@@ -78,8 +88,8 @@ export default function DashboardLayout({ children, title }) {
                 </div>
             </aside>
 
-            <main className="flex-1 ml-64 p-8 overflow-y-auto">
-                <header className="flex justify-between items-center mb-8">
+            <main className="flex-1 ml-64 p-8 overflow-y-auto print:ml-0 print:p-0">
+                <header className="flex justify-between items-center mb-8 print:hidden">
                     <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
                 </header>
                 {children}

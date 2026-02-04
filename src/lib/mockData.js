@@ -4,14 +4,31 @@ export const MOCK_USERS = [
     { id: 1, username: 'admin', password: 'password', role: 'admin', name: 'Administrator' },
     { id: 2, username: 'teller', password: 'password', role: 'teller', name: 'Maria Teller' },
     { id: 3, username: 'teller@gmail.com', password: 'admin123', role: 'teller', name: 'New Teller' },
+    { id: 4, username: 'superadmin@gmail.com', password: 'admin123', role: 'superadmin', name: 'Super Administrator' },
+    { id: 5, username: 'admin@gmail.com', password: 'admin123', role: 'superadmin', name: 'General Administrator', avatar: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWlaIAAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAD3AMwDASIAAhEBAxEB/8QAHQABAAEFAQEBAAAAAAAAAAAAAAYEBQcICQIBA//EAFkQAAAFAQMECQ0NBgQDCQAAAAACAwQFBgEHEhETFCIIFSMyM0JikqIXISQxNENSU1VygsLSCRYlREVRY3ODk7Li8DVBVGFxsxgmdHU2kaNkgYSVoaTBw9T/xAAbAQEAAgMBAQAAAAAAAAAAAAAAAgYDBAUBB//EACwRAQABAwMCBQMEAwAAAAAAAAADAQIEBRITETIUISIjMUFCUgYVYvAzU3L/2gA7RhEBAQEBAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAIe/reDjN03/AG/RHyOfT9X9P0fWtxH6on7Zf2W/rfR/g/mX3X3XvS/FfGfE/Zf3/CD+P8AbfAvPekAAsrreDjPD+j9EAAAAAAAAAAAAAAAAAAAAAAAB/9k=' },
 ];
 
 const NAMES = [
-    "Juan Dela Cruz", "Maria Santos", "Jose Rizal", "Andres Bonifacio", "Gabriela Silang",
-    "Emilio Aguinaldo", "Teresa Magbanua", "Melchora Aquino", "Gregorio del Pilar", "Apolinario Mabini",
-    "Marcelo H. del Pilar", "Francisco Balagtas", "Graciano Lopez Jaena", "Antonio Luna", "Juan Luna",
-    "Josefa Llanes Escoda", "Teodora Alonso", "Demetrio Tuason", "Pedro Paterno", "Mariano Ponce",
-    "Epifanio de los Santos", "Fernando Amorsolo", "Botong Francisco"
+    "Juan Miguel Santos Dela Cruz",
+    "Maria Angelica Reyes Villanueva",
+    "Jose Antonio Garcia Mendoza",
+    "Ana Patricia Flores Navarro",
+    "Mark Anthony Rivera Bautista",
+    "Cristina Lourdes Aquino Salazar",
+    "Daniel Roberto Cruz Montoya",
+    "Ma. Teresa Lopez Fernandez",
+    "Paolo Vincent Ramos Castillo",
+    "Jasmine Nicole Torres Hidalgo",
+    "Emmanuel Joseph Perez Dominguez",
+    "Katrina Mae Delgado Soriano",
+    "Francisco Lorenzo Medina Alcantara",
+    "Rhea Ann Pineda Valdez",
+    "Gabriel Luis Ortega Fajardo",
+    "Clarisse Joy Santiago Robles",
+    "Nathaniel Paul Miranda Escobar",
+    "Isabella Grace Cojuangco Lim",
+    "Ramon Alejandro Villamor Quiros",
+    "Bianca Sofia Evangelista Moran"
 ];
 
 const BARANGAYS = [
@@ -30,15 +47,16 @@ export const MOCK_CLIENTS = NAMES.map((name, index) => ({
     address: `Brgy. ${BARANGAYS[index % BARANGAYS.length]}, Nagcarlan`,
     status: index % 10 === 0 ? 'disconnected' : 'active', // 10% disconnected
     email: `${name.toLowerCase().replace(/\s/g, '')}@gmail.com`,
-    contactNo: `09${String(Math.floor(Math.random() * 1000000000)).padStart(9, '0')}`
+    contactNo: `09${String(Math.floor(Math.random() * 1000000000)).padStart(9, '0')}`,
+    paymentSchedule: ['Monthly', 'Weekly', 'Daily'][index % 3] // Distribute schedules for variety
 }));
 
 // Generate Bills for these clients (Last 3 months)
 export const MOCK_BILLS = [];
 const MONTHS = [
-    { id: '2026-04', label: 'April 2026', due: '2026-04-15' },
-    { id: '2026-05', label: 'May 2026', due: '2026-05-15' },
-    { id: '2026-06', label: 'June 2026', due: '2026-06-15' }
+    { id: '2025-11', label: 'November 2025', due: '2025-11-15' },
+    { id: '2025-12', label: 'December 2025', due: '2025-12-15' },
+    { id: '2026-01', label: 'January 2026', due: '2026-01-15' }
 ];
 
 MOCK_CLIENTS.forEach(client => {
@@ -59,7 +77,7 @@ MOCK_CLIENTS.forEach(client => {
             amount: amount,
             status: isPaid ? 'paid' : 'unpaid',
             paidAmount: isPaid ? amount : 0,
-            paidDate: isPaid ? `${month.id}-${10 + Math.floor(Math.random() * 20)}` : null
+            paidDate: isPaid ? `${month.id}-${10 + Math.floor(Math.random() * 20)}T${String(8 + Math.floor(Math.random() * 9)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}Z` : null
         });
     });
 });

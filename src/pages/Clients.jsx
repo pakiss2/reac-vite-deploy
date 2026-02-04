@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
-import { MOCK_CLIENTS } from '../lib/mockData';
+import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { calculateConsumptionFromAmount, calculateBillAmount } from '../lib/billing';
 import {
     Plus,
     Search,
@@ -13,8 +15,9 @@ import {
 import { cn } from '../lib/utils';
 
 export default function Clients() {
+    const { user } = useAuth();
     const navigate = useNavigate();
-    const [clients, setClients] = useState(MOCK_CLIENTS);
+    const { clients, addClient, deleteClient, addBill, bills, billingSettings, penaltySettings } = useData();
     const [search, setSearch] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newClient, setNewClient] = useState({
@@ -24,19 +27,31 @@ export default function Clients() {
         contactNo: '',
         email: '',
         accountNo: '',
-        type: 'Residential'
+        type: 'Residential',
+        paymentSchedule: 'Monthly',
+        initialAmount: ''
     });
 
-    const filteredClients = clients.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.meterNo.toLowerCase().includes(search.toLowerCase())
-    );
+    const [searchParams, setSearchParams] = useSearchParams();
+    const filterType = searchParams.get('filter'); // 'overdue' or null
 
-    const handleDelete = (id) => {
-        if (confirm('Are you sure you want to delete this client?')) {
-            setClients(clients.filter(c => c.id !== id));
+    const filteredClients = clients.filter(c => {
+        const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+            c.meterNo.toLowerCase().includes(search.toLowerCase());
+
+        if (filterType === 'overdue') {
+            const clientBills = bills.filter(b => b.clientId === c.id && b.status === 'unpaid');
+            const hasOverdue = clientBills.length > 0;
+            return matchesSearch && hasOverdue;
         }
+
+        return matchesSearch;
+    });
+
+    const clearFilter = () => {
+        setSearchParams({});
     };
+
 
     const handleAddClient = (e) => {
         e.preventDefault();
@@ -51,10 +66,39 @@ export default function Clients() {
             address: newClient.address,
             status: 'active', // Default status
             email: newClient.email,
-            contactNo: newClient.contactNo
+            contactNo: newClient.contactNo,
+            paymentSchedule: newClient.paymentSchedule
         };
 
-        setClients([...clients, client]);
+        addClient(client);
+
+        // Auto-generate initial bill if amount is provided
+        if (newClient.initialAmount && parseFloat(newClient.initialAmount) > 0) {
+            const amount = parseFloat(newClient.initialAmount);
+            const consumption = calculateConsumptionFromAmount(newClient.type.toLowerCase(), amount, billingSettings);
+
+            const now = new Date();
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+            const monthId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const billId = `B-${client.id}-${monthId}`;
+
+            addBill({
+                id: billId,
+                clientId: client.id,
+                date: `${monthId}-01`,
+                month: monthLabel,
+                dueDate: `${monthId}-15`,
+                prevReading: 0,
+                currReading: consumption,
+                consumption: consumption,
+                amount: amount,
+                status: 'unpaid',
+                paidAmount: 0,
+                paidDate: null
+            });
+        }
+
         setIsAddModalOpen(false);
         setNewClient({
             firstName: '',
@@ -63,12 +107,36 @@ export default function Clients() {
             contactNo: '',
             email: '',
             accountNo: '',
-            type: 'Residential'
+            accountNo: '',
+            type: 'Residential',
+            paymentSchedule: 'Monthly'
         });
     };
 
     return (
         <DashboardLayout title="Clients">
+            {/* Filter Banner */}
+            {filterType === 'overdue' && (
+                <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                            <Trash2 size={16} /> {/* Using Trash as a placeholder icon for 'debt', or use AlertCircle */}
+                        </div>
+                        <div>
+                            <p className="font-bold text-orange-800 text-sm">Showing Overdue Clients</p>
+                            <p className="text-xs text-orange-600">Displaying {filteredClients.length} clients with outstanding balances.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={clearFilter}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-orange-200 shadow-sm rounded-lg text-xs font-bold text-orange-700 hover:bg-orange-50 transition-colors"
+                    >
+                        <X size={14} />
+                        Clear Filter
+                    </button>
+                </div>
+            )}
+
             {/* Header Actions */}
             <div className="flex justify-between items-center mb-6">
                 <div className="relative w-72">
@@ -81,13 +149,15 @@ export default function Clients() {
                         className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                     />
                 </div>
-                <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 bg-[#1a2332] text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
-                >
-                    <Plus size={18} />
-                    <span>Add New Client</span>
-                </button>
+                {user?.role === 'teller' && (
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex items-center gap-2 bg-[#1a2332] text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+                    >
+                        <Plus size={18} />
+                        <span>Add New Client</span>
+                    </button>
+                )}
             </div>
 
             {/* Table */}
@@ -96,10 +166,13 @@ export default function Clients() {
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th className="p-4 font-medium text-slate-600 text-sm">Account No.</th>
-                            <th className="p-4 font-medium text-slate-600 text-sm">Name</th>
-                            <th className="p-4 font-medium text-slate-600 text-sm">Type</th>
-                            <th className="p-4 font-medium text-slate-600 text-sm">Status</th>
+                            <th className="p-4 font-medium text-slate-600 text-sm">Client Name</th>
                             <th className="p-4 font-medium text-slate-600 text-sm">Address</th>
+                            <th className="p-4 font-medium text-slate-600 text-sm">Contact No.</th>
+                            <th className="p-4 font-medium text-slate-600 text-sm">Type</th>
+                            <th className="p-4 font-medium text-slate-600 text-sm">Last Billing</th>
+                            <th className="p-4 font-medium text-slate-600 text-sm">Balance</th>
+                            <th className="p-4 font-medium text-slate-600 text-sm">Status</th>
                             <th className="p-4 font-medium text-slate-600 text-sm text-right">Actions</th>
                         </tr>
                     </thead>
@@ -112,29 +185,37 @@ export default function Clients() {
                             >
                                 <td className="p-4 text-sm font-mono text-slate-500">{client.meterNo}</td>
                                 <td className="p-4 text-sm font-medium text-slate-800">{client.name}</td>
-                                <td className="p-4">
+                                <td className="p-4 text-sm text-slate-500">{client.address}</td>
+                                <td className="p-4 text-sm text-slate-500">{client.contactNo || '-'}</td>
+                                <td className="p-4 pt-5">
                                     <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium capitalize",
                                         client.type === 'commercial' ? "bg-indigo-900 text-white" : "bg-slate-200 text-slate-700"
                                     )}>
                                         {client.type}
                                     </span>
                                 </td>
-                                <td className="p-4">
+                                <td className="p-4 pt-5 text-sm text-slate-600">
+                                    {(() => {
+                                        const clientBills = bills.filter(b => b.clientId === client.id);
+                                        const latest = [...clientBills].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                                        return latest ? latest.month : 'None';
+                                    })()}
+                                </td>
+                                <td className="p-4 pt-5 text-sm font-bold text-slate-800">
+                                    {(() => {
+                                        const clientBills = bills.filter(b => b.clientId === client.id && b.status === 'unpaid');
+                                        const balance = clientBills.reduce((sum, b) => sum + b.amount, 0);
+                                        return `₱${balance.toLocaleString()}`;
+                                    })()}
+                                </td>
+                                <td className="p-4 pt-5 text-sm">
                                     <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium capitalize",
                                         client.status === 'active' ? "bg-green-500 text-white" : "bg-red-500 text-white"
                                     )}>
                                         {client.status}
                                     </span>
                                 </td>
-                                <td className="p-4 text-sm text-slate-500">{client.address}</td>
                                 <td className="p-4 text-right flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                        onClick={() => handleDelete(client.id)}
-                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Delete Client"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
                                     <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                         <ChevronRight size={16} />
                                     </button>
@@ -243,6 +324,44 @@ export default function Clients() {
                                         <option>Commercial</option>
                                     </select>
                                     <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400 pointer-events-none" size={16} />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label className="text-sm font-medium text-slate-700 text-right">Payment Schedule</label>
+                                <div className="col-span-3 relative">
+                                    <select
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none bg-white"
+                                        value={newClient.paymentSchedule}
+                                        onChange={e => setNewClient({ ...newClient, paymentSchedule: e.target.value })}
+                                    >
+                                        <option>Monthly</option>
+                                        <option>Weekly</option>
+                                        <option>Daily</option>
+                                    </select>
+                                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400 pointer-events-none" size={16} />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-4 items-center gap-4 border-t border-slate-100 pt-4">
+                                <label className="text-sm font-bold text-blue-600 text-right">Initial Bill Amount</label>
+                                <div className="col-span-3">
+                                    <input
+                                        type="number"
+                                        placeholder="PHP (Optional)"
+                                        className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-blue-50/30"
+                                        value={newClient.initialAmount}
+                                        onChange={e => setNewClient({ ...newClient, initialAmount: e.target.value })}
+                                    />
+                                    {newClient.initialAmount && parseFloat(newClient.initialAmount) > 0 && (
+                                        <div className="mt-2 p-2 bg-blue-50 rounded-lg flex justify-between items-center animate-in fade-in slide-in-from-top-1 duration-200">
+                                            <span className="text-[11px] text-blue-600 font-medium">Resulting Consumption:</span>
+                                            <span className="text-[11px] text-blue-800 font-bold">
+                                                {calculateConsumptionFromAmount(newClient.type.toLowerCase(), parseFloat(newClient.initialAmount), billingSettings).toFixed(2)} m³
+                                            </span>
+                                        </div>
+                                    )}
+                                    <p className="text-[10px] text-slate-400 mt-1">If provided, an initial unpaid bill will be generated automatically.</p>
                                 </div>
                             </div>
 
